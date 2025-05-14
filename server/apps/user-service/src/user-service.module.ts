@@ -1,10 +1,17 @@
 import { Module } from '@nestjs/common';
-import { UserServiceController } from './user-service.controller';
-import { UserServiceService } from './user-service.service';
+import { ConfigModule } from '@nestjs/config'
+import { DatabaseModule } from './database/database.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [],
-  controllers: [UserServiceController],
-  providers: [UserServiceService],
+  imports: [
+    ConfigModule.forRoot({ 
+      isGlobal: true,
+     }),
+    DatabaseModule,
+    UsersModule,
+    AuthModule,
+  ],
 })
 export class UserServiceModule {}

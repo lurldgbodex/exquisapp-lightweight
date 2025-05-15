@@ -34,27 +34,38 @@ The user services handles the registration, authentication and authorization of 
 
 ### User Schema:
 
-a. first_name: string b. last_name: string c. user_name: string d. password:string e. id: uuid
+- a. first_name: string 
+- b. last_name: string 
+- c. user_name: string 
+- d. password:string 
+- e. id: uuid
 
 ### Wallet Service
 
-WallletDB a. userID: User (objectID) b. amount: float
+WallletDB 
+- a. userID: User (objectID)
+- b. amount: float
 
 ### Billing Service
 
-a. id: uuid b. user_id: User(referencing user objectid) c. invoice_no: string d. bill_amount: float e. status: boolean f. date: date
+- a. id: uuid 
+- b. user_id: User(referencing user objectid)
+- c. invoice_no: string
+- d. bill_amount: float
+- e. status: boolean
+- f. date: date
 
 ### Email Service
-
 Sends emails to parties //the schema here keeps log
 
 ### Payment Service
-
 Handles third party payment. Funding of wallet when he wants to fund it. If the user wallet is empty then use this service to make payment and notify the billing service to fund the account as the case may be
 
 ### PaymentDB
-
-a. paid_by: User b. paid_to: nullable (if its not null then message the billing service to fund the account with the amount paid, and the deduct from the client and credit the service provider wallet) c. payment_amount: float d. status: bool
+- a. paid_by: User
+- b. paid_to: nullable (if its not null then message the billing service to fund the account with the amount paid, and the deduct from the client and credit the service provider wallet)
+- c. payment_amount: float
+- d. status: bool
 
 ## Frontend
 

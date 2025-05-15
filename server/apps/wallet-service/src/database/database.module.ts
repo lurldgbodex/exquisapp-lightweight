@@ -9,7 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
             port: 5432,
             username: process.env.DB_USERNAME,
             password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME || 'user_db',
+            database: process.env.DB_NAME || "wallet_db",
             autoLoadEntities: true,
             synchronize: process.env.NODE_ENV !== 'production',
         }),

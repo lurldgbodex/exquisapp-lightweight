@@ -35,8 +35,12 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         });
         this.channelWrapper = this.connection.createChannel({
             json: true,
-            setup: (channel) => channel.assertExchange('user_events', 'topic', 
-                { durable: true })
+            setup: async (channel) => {
+                await Promise.all([
+                    channel.assertExchange('user_events', 'topic', { durable: true }),
+                    channel.assertExchange('payment_exchange', 'topic', { durable: true })
+                ])
+            }
         });
 
         this.connection.on('connect', () => {

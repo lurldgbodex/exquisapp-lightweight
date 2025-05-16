@@ -4,7 +4,7 @@ import { Payment } from './entities/payment.entities';
 import { Repository } from 'typeorm';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { v4 as uuid4 } from 'uuid';
-import { UserServiceClient } from 'libs/shared-lib/src';
+import { UserServiceClient, WalletServiceClient } from 'libs/shared-lib/src';
 import { PaymentPublisher } from './events/payment.publisher';
 import { PaymentCompletedEvent } from './events/payment.event';
 
@@ -14,6 +14,7 @@ export class PaymentService {
     @InjectRepository(Payment)
     private paymentRepository: Repository<Payment>,
     private readonly userServiceClient: UserServiceClient,
+    private readonly walletServiceClient: WalletServiceClient,
     private readonly paymentPublisher: PaymentPublisher,
   ) {}
 
@@ -30,7 +31,14 @@ export class PaymentService {
     }
 
     const paymentType = createPaymentDto.paid_to ? 'transfer' : 'deposit';
+    if (paymentType === 'transfer') {
+      const senderBalance = await this.walletServiceClient.getBalance(createPaymentDto.paid_by);
 
+      if (senderBalance < createPaymentDto.amount) {
+        throw new BadRequestException(`User ${createPaymentDto.paid_by} has insufficient funds`)
+      }
+    }
+    
     const payment = this.paymentRepository.create({
       paidBy: createPaymentDto.paid_by,
       paidTo: createPaymentDto.paid_to || null,

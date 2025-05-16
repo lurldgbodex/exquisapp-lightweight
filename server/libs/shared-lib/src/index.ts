@@ -7,3 +7,6 @@ export * from './events/user.events';
 
 export * from './user-service/user-service.module';
 export * from './user-service/user-service.client';
+
+export * from './wallet-service/wallet-service.module';
+export * from './wallet-service/wallet-service.client';

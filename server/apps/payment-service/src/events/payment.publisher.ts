@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { RabbitMQService } from "libs/shared-lib/src";
 import { PaymentCompletedEvent } from "./payment.event";
-import { timestamp } from "rxjs";
 
 @Injectable()
 export class PaymentPublisher {
@@ -22,6 +21,7 @@ export class PaymentPublisher {
                     paymentType: event.type
                 }
             });
+            console.log('Payment event published')
         } catch (error) {
             console.error('Failed to publish payment completed event:', error)
             throw error;

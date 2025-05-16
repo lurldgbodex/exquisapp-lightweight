@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { Repository } from 'typeorm';
+import { WalletDto } from './dto/wallet.dto';
+import { Decimal } from 'decimal.js';
 
 @Injectable()
 export class WalletService {
@@ -21,6 +23,38 @@ export class WalletService {
     if (!wallet) {
       throw new NotFoundException('wallet not found for id')
     }
+
+    return wallet;
+  }
+
+  async getWalletBalance(userId: string): Promise<number> {
+    const wallet = await this.getWallet(userId);
+    return wallet.balance;
+  }
+
+  async debitWallet(data: WalletDto) {
+    const wallet = await this.getWallet(data.userId);
+    if (wallet.balance < data.amount) {
+      throw new BadRequestException('Insufficient funds for debit')
+    }
+
+    const currentBalance = new Decimal(wallet.balance);
+    const amount = new Decimal(data.amount);
+    wallet.balance = currentBalance.minus(amount).toNumber();
+
+    await this.walletRepository.save(wallet);
+
+    return wallet;
+  }
+
+  async creditWallet(data: WalletDto) {
+    const wallet = await this.getWallet(data.userId);
+
+    const currentBalance = new Decimal(wallet.balance);
+    const amount = new Decimal(data.amount);
+    wallet.balance = currentBalance.plus(amount).toNumber();
+
+    await this.walletRepository.save(wallet);
 
     return wallet;
   }

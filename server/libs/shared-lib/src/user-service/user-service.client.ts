@@ -9,7 +9,7 @@ export class UserServiceClient {
     async validateUser(userId: string): Promise<{ isvalid: boolean; userInfo?:any }> {
         try {
             const response = await firstValueFrom(
-                this.httpService.get(`${process.env.USER_SERVICE_URL}/users/${userId}/validate`),
+                this.httpService.get(`http://localhost:3000/users/${userId}/validate`),
             );
 
             return { isvalid: true, userInfo: response.data };

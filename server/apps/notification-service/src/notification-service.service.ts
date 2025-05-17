@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { EventHandlers } from './events/event.handlers';
 
 @Injectable()
-export class NotificationServiceService {
-  getHello(): string {
-    return 'Hello World!';
-  }
+export class NotificationService implements OnModuleInit {
+    constructor(private readonly eventHandlers: EventHandlers) {}
+
+    async onModuleInit() {
+        await this.eventHandlers.initializeEventListeners();
+    }
 }

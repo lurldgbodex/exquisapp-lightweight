@@ -14,7 +14,7 @@ export class UsersService {
     ) {}
 
     async create(userData: CreateRequest): Promise<User>{
-        const existingUser = await this.userRepository.findOne({ where: { username: userData.username }});
+        const existingUser = await this.userRepository.findOne({ where: { email: userData.email }});
 
         if (existingUser) {
             throw new ConflictException('User already exists');
@@ -24,15 +24,15 @@ export class UsersService {
         const user = await this.userRepository.create({
             firstname: userData.first_name,
             lastname: userData.last_name,
-            username: userData.username,
+            email: userData.email,
             password: hashedPassword,
         });
 
         return this.userRepository.save(user);
     }
 
-    async findOneByUserName(username: string): Promise<User | null> {
-        return await this.userRepository.findOne({ where: { username }});
+    async findOneByEmail(email: string): Promise<User | null> {
+        return await this.userRepository.findOne({ where: { email }});
     }
 
     async findOneById(id: string): Promise<userData> {
@@ -46,7 +46,7 @@ export class UsersService {
             id: user.id,
             firstname: user.firstname,
             lastname: user.lastname,
-            username: user.username,
+            email: user.email,
             created_at: user.createdAt,
         };
     }

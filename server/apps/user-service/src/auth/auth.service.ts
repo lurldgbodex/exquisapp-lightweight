@@ -20,6 +20,7 @@ export class AuthService {
     async login(loginDto: LoginRequest): Promise<AuthResponse> {
         const user = await this.validateUser(loginDto);
         console.log('UserID:', user.id);
+
         return await this.generateToken(user);
     }
 
@@ -35,7 +36,7 @@ export class AuthService {
     } 
 
     async validateUser(req: LoginRequest): Promise<User> {
-        const user = await this.userService.findOneByUserName(req.username);
+        const user = await this.userService.findOneByEmail(req.email);
 
         if (!user || !(await bcrypt.compare(req.password, user.password))) {
             throw new UnauthorizedException('Invalid credentials')
@@ -46,7 +47,7 @@ export class AuthService {
 
 
     private async generateToken(user: User): Promise<AuthResponse> {
-        const payload = { username: user.username, sub: user.id }
+        const payload = { username: user.email, sub: user.id }
         
         const access_token = await this.jwtService.sign(payload, {
             secret: jwtConstants.secret,
@@ -62,7 +63,8 @@ export class AuthService {
         await this.rabbitMQService.publish('user_events', 'user.registered', {
             eventType: 'USER_REGISTERED',
             userId: user.id,
-            username: user.username,
+            name: `${user.firstname} ${user.lastname}`,
+            email: user.email,
             timeStamp: user.createdAt,
         });
 

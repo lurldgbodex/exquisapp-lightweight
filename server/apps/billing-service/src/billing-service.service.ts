@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { WalletServiceClient } from 'libs/shared-lib/src';
+import { RabbitMQService, WalletServiceClient } from 'libs/shared-lib/src';
 import { BillingRecord } from './entities/billing.entity';
 import { Repository } from 'typeorm';
 import { BillingEventDto } from './events/billing.event';
@@ -11,6 +11,7 @@ export class BillingService {
     @InjectRepository(BillingRecord)
     private billingRepository: Repository<BillingRecord>,
     private walletService: WalletServiceClient,
+    private rabbitMQService: RabbitMQService,
   ) {}
 
   async processPaymentEvent(event: BillingEventDto) {
@@ -55,31 +56,74 @@ export class BillingService {
   }
 
   private async processTransfer(from: string, to: string, amount: number, reference: string) {
+    const transactionInfo = {
+      userId: from,
+      amount,
+      reference: `DEBIT-${reference}`
+    }
 
     await this.walletService.debitWallet({
       userId: from,
-      amount, reference: `DEBIT-${reference}`
+      amount, reference: transactionInfo.reference,
     });
 
+    this.publishWalletDebitedEvent(transactionInfo).catch(err => {
+      console.error('Failed to publish wallet debited event:', err);
+    })
+
+    const creditReference = `CREDIT-${reference}`
     await this.walletService.creditWallet({
       userId: to,
       amount,
-      reference: `CREDIT-${reference}`
+      reference: creditReference
     });
 
     await this.billingRepository.update( { reference }, { status: 'completed'}, );
+
+    this.publishWalletCreditedEvent(to, amount, creditReference).catch(err => {
+      console.error('Failed to publish credit wallet event:', err);
+    })
   }
 
   private async processFunding(userId: string, amount: number, reference: string) {
+    const creditReference = `DEPOSIT-${reference}`
     await this.walletService.creditWallet({
       userId, 
       amount, 
-      reference: `DEPOSIT-${reference}`
+      reference: creditReference
     });
 
     await this.billingRepository.update(
       { reference },
       { status: 'completed' }
     )
+
+    this.publishWalletCreditedEvent(userId, amount, creditReference);
   }
+
+   private async publishWalletCreditedEvent(userId: string, amount: number, reference: string) {
+        console.log('Publishing wallet credited event');
+
+        await this.rabbitMQService.publish('wallet_events', 'wallet.credited', {
+            eventType: 'WALLET_CREDITED',
+            userId,
+            amount,
+            reference,
+        });
+
+        console.log('User Registered Event Published');
+    }
+
+     private async publishWalletDebitedEvent(transactionInfo: { userId: string, amount: number, reference: string }) {
+          console.log('Publishing wallet Debited event');
+  
+          await this.rabbitMQService.publish('wallet_events', 'wallet.debited', {
+              eventType: 'WALLET_DEBITED',
+              userId: transactionInfo.userId,
+              amount: transactionInfo.amount,
+              reference: transactionInfo.reference,
+          });
+  
+          console.log('User Registered Event Published');
+      }
 }

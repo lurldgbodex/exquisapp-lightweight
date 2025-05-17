@@ -1,8 +1,7 @@
-export interface UserRegisteredEvent {
-    eventType: 'USER_REGISTERED';
-    userId: string;
-    username: string;
-    timestamp: Date;
+export interface UserInfo{
+    id: string;
+    firstname: string;
+    lastname: string;
+    email: string;
+    created_at: string;
 }
-
-export type UserEvent = UserRegisteredEvent;

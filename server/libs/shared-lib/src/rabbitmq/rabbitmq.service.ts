@@ -28,20 +28,26 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
        await this.connection.close();
    }
 
+   async createChannel(): Promise<amqp.ChannelWrapper> {
+    this.connection = amqp.connect(['amqp://localhost:5672'], {
+        reconnectTimeInSeconds: 5
+    });
+
+    return this.connection.createChannel({
+        json: true,
+        setup: (channel) => {
+            return Promise.all([
+                channel.assertExchange('user_events', 'topic', { durable: true }),
+                channel.assertExchange('payment_exchange', 'topic', { durable: true }),
+                channel.assertExchange('wallet_events', 'topic', { durable: true}),
+            ])
+        }
+    })
+   }
+
    private async initialize(): Promise<void> {
     try {
-        this.connection = amqp.connect(['amqp://localhost:5672'], {
-            reconnectTimeInSeconds: 5
-        });
-        this.channelWrapper = this.connection.createChannel({
-            json: true,
-            setup: async (channel) => {
-                await Promise.all([
-                    channel.assertExchange('user_events', 'topic', { durable: true }),
-                    channel.assertExchange('payment_exchange', 'topic', { durable: true })
-                ])
-            }
-        });
+        this.channelWrapper = await this.createChannel();
 
         this.connection.on('connect', () => {
             console.log("RabbitMQ connected");

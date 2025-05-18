@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { RabbitMQService, UserServiceClient } from "libs/shared-lib/src";
-import { EmailService } from "../email/email.service";
+import { EmailService } from "../emails/email.service";
 import { UserCreatedDto } from "./user-created.dto";
 import { PaymentDto } from "./payment.dto";
 import { WalletDto } from "./wallet.dto";

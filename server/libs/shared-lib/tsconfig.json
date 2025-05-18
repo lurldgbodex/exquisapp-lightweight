@@ -4,6 +4,6 @@
         "outDir": "./dist",
         "rootDir": "./src"
     },
-    "include": ["src/**/*"],
+    "include": ["src/**/*", "../../apps/api-gateway/src/interfaces"],
     "exclude": ["node_modules", "test", "dist"]
 }

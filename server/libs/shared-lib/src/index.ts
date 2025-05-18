@@ -10,3 +10,6 @@ export * from './user-service/user-service.client';
 
 export * from './wallet-service/wallet-service.module';
 export * from './wallet-service/wallet-service.client';
+
+export * from './auth/service-auth.module';
+export * from './auth/service-jwt.guard';

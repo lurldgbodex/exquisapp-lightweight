@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { UserConsumer } from './consumers/user.consumer';
 import { WalletController } from './wallet-service.controller';
+import { ServiceAuthModule, ServiceJwtGuard } from 'libs/shared-lib/src';
 
 @Module({
   imports: [
@@ -14,8 +15,9 @@ import { WalletController } from './wallet-service.controller';
     }),
     TypeOrmModule.forFeature([Wallet]),
     DatabaseModule,
+    ServiceAuthModule,
   ],
-  providers: [WalletService, UserConsumer],
+  providers: [WalletService, UserConsumer, ServiceJwtGuard],
   controllers: [WalletController],
 })
 export class WalletServiceModule {}

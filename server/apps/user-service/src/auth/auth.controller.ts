@@ -4,7 +4,7 @@ import { CreateRequest } from '../dto/request/create-user.dto';
 import { LoginRequest } from '../dto/request/login-user.dto';
 import { AuthResponse } from '../dto/response/auth-response.dto';
 
-@Controller('auth')
+@Controller('auths')
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
 

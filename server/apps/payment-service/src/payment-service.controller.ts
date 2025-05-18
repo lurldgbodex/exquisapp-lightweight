@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { PaymentService } from './payment-service.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentStatusDto } from './dto/get-payment-status.dto';
@@ -7,9 +7,10 @@ import { PaymentStatusDto } from './dto/get-payment-status.dto';
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  @Post()
-  async createPayment(@Body() CreatePaymentDto: CreatePaymentDto) {
-    return this.paymentService.initiatePayment(CreatePaymentDto);
+  @Post('/transact')
+  async createPayment(@Body() CreatePaymentDto: CreatePaymentDto, @Req() req: Request) {
+    const userId = req.headers['x-user-id']
+    return this.paymentService.initiatePayment(CreatePaymentDto, userId);
   }
 
   @Get(':reference')

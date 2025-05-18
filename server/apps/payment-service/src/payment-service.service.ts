@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Payment } from './entities/payment.entities';
 import { Repository } from 'typeorm';
@@ -18,8 +18,12 @@ export class PaymentService {
     private readonly paymentPublisher: PaymentPublisher,
   ) {}
 
-  async initiatePayment(createPaymentDto: CreatePaymentDto) {
-    if (createPaymentDto.paid_to && createPaymentDto.paid_to === createPaymentDto.paid_by) {
+  async initiatePayment(createPaymentDto: CreatePaymentDto, userId: string) {
+    if (!userId) {
+      throw new UnauthorizedException();
+    }
+    
+    if (createPaymentDto.paid_to && createPaymentDto.paid_to === userId) {
       throw new BadRequestException('Cannot transfer to yourself')
     }
 
@@ -32,15 +36,17 @@ export class PaymentService {
 
     const paymentType = createPaymentDto.paid_to ? 'transfer' : 'deposit';
     if (paymentType === 'transfer') {
-      const senderBalance = await this.walletServiceClient.getBalance(createPaymentDto.paid_by);
+      const senderBalance = await this.walletServiceClient.getBalance(userId);
+      const balance = parseFloat(senderBalance);
+      
 
-      if (senderBalance < createPaymentDto.amount) {
-        throw new BadRequestException(`User ${createPaymentDto.paid_by} has insufficient funds`)
+      if (balance < createPaymentDto.amount) {
+        throw new BadRequestException(`User ${userId} has insufficient funds`)
       }
     }
     
     const payment = this.paymentRepository.create({
-      paidBy: createPaymentDto.paid_by,
+      paidBy: userId,
       paidTo: createPaymentDto.paid_to || null,
       amount: createPaymentDto.amount,
       type: paymentType,

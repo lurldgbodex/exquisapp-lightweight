@@ -27,9 +27,11 @@ export class WalletService {
     return wallet;
   }
 
-  async getWalletBalance(userId: string): Promise<number> {
+  async getWalletBalance(userId: string): Promise<{balance: number}> {
     const wallet = await this.getWallet(userId);
-    return wallet.balance;
+    return {
+      balance: wallet.balance
+    }
   }
 
   async debitWallet(data: WalletDto) {

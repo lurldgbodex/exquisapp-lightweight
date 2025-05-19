@@ -1,99 +1,164 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# MoneyPal Microservices Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A micorservice-based backend for a fictitious marketplace system, built with NestJs using monorepo approach. This system facilitates user registration, wallet management, payment processing, billing and notifications.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Table of Contents
 
-## Description
+- [Features](#features)
+- [Architecture](#architecture)
+- [Services Overview](#services-overview)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the System](#ruuning-the-system)
+- [Api Documentation](#api-documentation)
+- [Event Flow](#event-flow)
+- [Testing](#testing)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Features
 
-## Project setup
+**- User Management:** User registration and authentication
+**- Wallet System:** Virtual wallets with credit/debit capabilities
+**- Payment Processing:** User payment transactions
+**- Billing System:** Handles transactions between client and provider wallets
+**- Notifications:** Email notifications for payment activities
+**- Event-Driven Architecture:** Services communicate via message broker
+**- Database Per Service:** Isolated data storage for each microservice
+
+## Architecture
+
+The system follows a microservice architecture with these key components:
+
+- **API Gateway:** Single entry point for all client requests
+- **Core Services:** User, Wallet, Payment, Billing, and Notification services
+- **Message Broker:** RabbitMQ for event-driven communication
+- **Database Per Service:** Each service has its own dedicated database
+- **Shared Libraries:** Common utilities and services
+
+## Services Overview
+
+### User Service
+
+- handles user registration and authentication
+- manages user profiles
+- publishes `UserCreated` events
+
+### Wallet Service
+
+- manages virtual wallets
+- handles balance updates and transactions
+- provides wallet-to-wallet transfer capablitites
+
+### Payment Service
+
+- process payment intents
+- publishes `paymentCompleted` events
+
+### Billing Service
+
+- creates billing records
+- Orchestrates wallet transfers
+- publishes `WalletCreated` and `WalletDebited` events
+
+### Notification Service
+
+- sends email notifications
+- subscribes to payment, wallet and user events
+- manages notification templates
+
+### Api Gateway
+
+- Routes requests to appropriate servcie
+- handles authentication
+- aggregates responses when needed
+
+## Prerequisites
+
+Before running the application, ensure you have installed:
+
+- Node.js (v18 or later)
+- npm or yarn
+- Docker
+
+## Installation
+
+1. Clone the repository
 
 ```bash
-$ npm install
+git clone https://github.com/lurldgbodex/exquisapp-lightweight.git
+cd server
 ```
 
-## Compile and run the project
+2. Install dependencies
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
+3. set up environment variables
+
+- create a .env file at the root of the services with the database and jwt configurations
+
+## Configuration
+
+Configure each service and the shared lib by editing the respective `.env` file in each service directory. Key configuration options include:
+
+- Database connections
+- jwt secret keys
+- email service credentials
+
+## Ruuning the system
+
+Run the individual services by running:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run start:dev ${service-name}
 ```
 
-## Deployment
+substitute the ${service-name} with the name of the service e.g user-service, wallet-service ...
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Api Documentation
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Api documentation is available via swagger ui when running in dev mode:
+
+- Api Gateway: `http://localhost:3000/api`
+- User Servcie: `http://localhost:3001/api`
+- Wallet Service: `http://localhost:3002/api`
+- Payment Service: `http://localhost:3003/api`
+
+## Event Flow
+
+### Payment Processing Flow
+
+1. client -> Api Gateway -> Payment Service: Initiate payment
+2. Payment Service processes payment -> publishes `PaymentCompleted`
+3. Billing Service:
+
+- Receives `PaymentCompleted` -> creates billing record
+- initiates wallet transfer -> publishes `walletCredited` and `WalletDebited`
+
+4. Notification Service:
+
+- receives `PaymentCompleted` -> sends "Payment Initiated" email
+- receives `WalletCredited`/`WalletDebited` -> sends "Wallet credited/debit" email
+
+### User Registration Flow
+
+1. Client -> Api Gateway -> User Service: Register User
+2. User Service creates User -> Publishes `UserRegistered`
+3. Wallet Service receives `UserRegistered` -> creates wallet for new user
+4. Notification Service receives `UserRegistered` -> sends "welcome email"
+
+## Testing
+
+### Run unit tests:
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+npm test
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Run integrated tests:
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```bash
+npm run test:e2e
+```

@@ -8,6 +8,7 @@ import { BillingDatabaseModule } from './database/database.module';
 import { HttpModule } from '@nestjs/axios';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
+import { BillingController } from './billing-service.controller';
 
 @Module({
   imports: [
@@ -21,5 +22,6 @@ import { ConfigModule } from '@nestjs/config';
     ServiceAuthModule,
   ],
   providers: [BillingService, BillingConsumer, WalletServiceClient],
+  controllers: [BillingController]
 })
 export class BillingServiceModule {}

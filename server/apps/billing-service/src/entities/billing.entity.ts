@@ -9,7 +9,7 @@ export class BillingRecord {
     paymentId: string;
 
     @Column()
-    transactionnType: 'deposit' | 'transfer';
+    transactionType: 'deposit' | 'transfer';
 
     @Column()
     fromUserId: string;

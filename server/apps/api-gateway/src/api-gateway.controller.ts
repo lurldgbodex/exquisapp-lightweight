@@ -29,4 +29,10 @@ export class ApiGatewayController {
     async proxyPaymentService(@Request() req: ExpressRequest, @Response() res: ExpressResponse) {
         this.apiGatewayService.getproxy('/payments')(req, res);
     }
+
+    @All('/billings/*path')
+    @UseGuards(AuthGuard)
+    async proxyBillingService(@Request() req: ExpressRequest, @Response() res: ExpressResponse) {
+        this.apiGatewayService.getproxy('/billings')(req, res);
+    }
 }

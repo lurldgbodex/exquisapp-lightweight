@@ -14,6 +14,38 @@ export class BillingService {
     private rabbitMQService: RabbitMQService,
   ) {}
 
+  async getUserBillingRecords(userId: string): Promise<{deposits: BillingRecord[], transfers: BillingRecord[]}> {
+    const [deposits, transfers] = await Promise.all([
+      this.getUserDeposits(userId),
+      this.getUserTransfers(userId),
+    ]);
+
+    return { deposits, transfers };
+  }
+  async getUserDeposits(userId: string): Promise<BillingRecord[]> {
+    return await this.billingRepository.find({
+      where: {
+        fromUserId: userId,
+        transactionType: 'deposit',
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+    })
+  }
+
+  async getUserTransfers(userId: string): Promise<BillingRecord[]> {
+    return await this.billingRepository.find({
+      where: {
+        fromUserId: userId,
+        transactionType: 'transfer',
+      },
+      order: {
+        createdAt: 'DESC',
+      }
+    });
+  }
+
   async processPaymentEvent(event: BillingEventDto) {
     console.log("Process Payment Event")
     console.log("Event:", event);
@@ -31,7 +63,7 @@ export class BillingService {
     const amount = parseFloat(data.amount);
     const billingRecord = this.billingRepository.create({
       paymentId, 
-      transactionnType: paymentType,
+      transactionType: paymentType,
       fromUserId: paidBy,
       toUserId: paidTo,
       amount,

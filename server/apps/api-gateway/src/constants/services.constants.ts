@@ -21,4 +21,9 @@ export const SERVICES_CONFIG: ServiceConfig[] = [
         path: '/payments',
         url: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3003'
     },
+    {
+        name: 'billing-service',
+        path: '/billings',
+        url: process.env.BILLING_SERVICE_URL || 'http://localhost:3004'
+    }
 ]

@@ -5,5 +5,190 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  user-db:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_USER: ${USER_DB_USER}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD}
+      POSTGRES_DB: ${USER_DB_NAME}
+    ports:
+      - "5436:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  wallet-db:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_USER: ${WALLET_DB_USER}
+      POSTGRES_PASSWORD: ${WALLET_DB_PASSWORD}
+      POSTGRES_DB: ${WALLET_DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - wallet-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  payment-db:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_USER: ${PAYMENT_DB_USER}
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD}
+      POSTGRES_DB: ${PAYMENT_DB_NAME}
+    ports:
+      - "5434:5432"
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  billing-db:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_USER: ${BILLING_DB_USER}
+      POSTGRES_PASSWORD: ${BILLING_DB_PASSWORD}
+      POSTGRES_DB: ${BILLING_DB_NAME}
+    ports:
+      - "5435:5432"
+    volumes:
+      - billing-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: ./server
+      dockerfile: apps/api-gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - JWT_SECRET=${JWT-SECRET}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      wallet-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+
+  user-service:
+    build:
+      context: ./server
+      dockerfile: apps/user-service/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_HOST=${USER_DB_HOST}
+      - DB_PORT=${USER_DB_PORT}
+      - DB_USERNAME=${USER_DB_USER}
+      - DB_PASSWORD=${USER_DB_PASSWORD}
+      - DB_NAME=${USER_DB_NAME}
+      - JWT_SECRET=${JWT-SECRET}
+      - SERVICE_JWT_SECRET=${SERVICE-JWT}
+    depends_on:
+      user-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  wallet-service:
+    build:
+      context: ./server
+      dockerfile: apps/wallet-service/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - DB_HOST=${WALLET_DB_HOST}
+      - DB_PORT=${WALLET_DB_PORT}
+      - DB_USERNAME=${WALLET_DB_USER}
+      - DB_PASSWORD=${WALLET_DB_PASSWORD}
+      - DB_NAME=${WALLET_DB_NAME}
+      - RABBITMQ_URL='amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672'
+      - SERVICE_JWT_SECRET=${SERVICE-JWT}
+    depends_on:
+      wallet-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  payment-service:
+    build:
+      context: ./server
+      dockerfile: apps/payment-service/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - DB_HOST=${PAYMENT_DB_HOST}
+      - DB_PORT=${PAYMENT_DB_PORT}
+      - DB_USERNAME=${PAYMENT_DB_USER}
+      - DB_PASSWORD=${PAYMENT_DB_PASSWORD}
+      - DB_NAME=${PAYMENT_DB_NAME}
+      - SERVICE_JWT_SECRET=${SERVICE-JWT}
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  billing-service:
+    build:
+      context: ./server
+      dockerfile: apps/billing-service/Dockerfile
+    ports:
+      - "3004:3004"
+    environment:
+      - DB_HOST=${BILLING_DB_HOST}
+      - DB_PORT=${BILLING_DB_PORT}
+      - DB_USERNAME=${BILLING_DB_USER}
+      - DB_PASSWORD=${BILLING_DB_PASSWORD}
+      - DB_NAME=${BILLING_DB_NAME}
+      - RABBITMQ_URL='amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672'
+      - SERVICE_JWT_SECRET=${SERVICE-JWT}
+    depends_on:
+      billing-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      wallet-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+
+  notification-service:
+    build:
+      context: ./server
+      dockerfile: apps/notification-service/Dockerfile
+    ports:
+      - "3005:3005"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  user-db-data:
+  wallet-db-data:
+  payment-db-data:
+  billing-db-data:

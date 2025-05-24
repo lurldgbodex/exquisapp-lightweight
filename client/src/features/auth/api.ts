@@ -18,10 +18,12 @@ export const authApi = {
     login: async (data: LoginData) => {
         try {
             const response = await apiClient.post('/auths/login', data)
+            console.log(response);
             return response.data;
         } catch (error) {
-            const err = error as AxiosError;
-            throw new ApiError(err.message, err.response?.status ?? 500)
+            const err = error as AxiosError<{ message: string }>;
+            const errMessage = err.response?.data?.message ?? 'invalid credentials'
+            throw new ApiError(errMessage, err.response?.status ?? 500)
         }
     },
     register: async (data: RegisterData) => {

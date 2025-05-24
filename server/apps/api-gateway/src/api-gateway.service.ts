@@ -16,6 +16,7 @@ export class ApiGatewayService {
     ) {
         SERVICES_CONFIG.forEach(service => {
             this.services[service.path] = service.url;
+            this.logger.log(service.url)
         });
     }
 

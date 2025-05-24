@@ -1,84 +1,72 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
-import * as amqp from 'amqp-connection-manager';
 import { ConfirmChannel, Message } from 'amqplib';
 import { WalletService } from "../wallet-service.service";
+import { RabbitMQService } from "libs/shared-lib/src";
 
 @Injectable()
 export class UserConsumer implements OnModuleInit {
-    private connection: amqp.AmqpConnectionManager;
-    private channelWrapper: amqp.ChannelWrapper;
     private readonly logger = new Logger(UserConsumer.name);
-
-    constructor(private readonly walletService: WalletService) {}
-   
-    async onModuleInit() {
-        this.logger.log('Initializing RabbitMQ connection');
-
-        this.connection = amqp.connect(['amqp://localhost:5672'], {
-            reconnectTimeInSeconds: 5,
-            heartbeatIntervalInSeconds: 60
-        });
-
-        this.connection.on('connect', () => {
-            this.logger.log('Successfully connected to RabbitMQ');
-        });
-
-        this.connection.on('disconnect', (err) => {
-            this.logger.error('RabbitMQ connection lost', err);
-        });
     
-        this.channelWrapper = this.connection.createChannel({
-            json: true,
-            setup: (channel) => {
-                return Promise.all([
-                    channel.assertExchange('user_events', 'topic', {durable: true}),
-                    channel.assertQueue('wallet_service_queue', { durable: true }),
-                    channel.bindQueue('wallet_service_queue', 'user_events', 'user.registered'),
-                    channel.prefetch(1),
-                    channel.consume('wallet_service_queue', (msg) => this.handleMessage(msg, channel))
-                ]).then(() => {
-                    this.logger.log('Channel setup completed');
-                });
-            },
-        });
+    constructor(
+        private readonly walletService: WalletService,
+        private readonly rabbitMQService: RabbitMQService,
+    ) {}
 
-        this.channelWrapper.on('connect', () => {
-            this.logger.log('Channel connected');
-        });
-
-        this.channelWrapper.on('error', (err) => {
-            this.logger.error('Channel error:', err);
-        });
-
-        this.channelWrapper.on('close', () => {
-            this.logger.warn('Channel closed');
-        })
+    async onModuleInit() {
+        await this.setupConsumer();
     }
 
-    private async handleMessage(msg: Message | null, channel: ConfirmChannel) {
-        if (!msg) {
-            this.logger.warn('Received null message')
-            return;
-        }
-
-        this.logger.debug('Received message with routing key:', msg.fields.routingKey);
-        this.logger.debug('Exchange:', msg.fields.exchange);
-
+    async setupConsumer() {
         try {
-            const content = JSON.parse(msg.content.toString());
-            this.logger.log(`Received message: ${JSON.stringify(content)}`);
+            this.logger.debug('Creating channel for Wallet consumer')
+            const channel = await this.rabbitMQService.createChannel();
 
-            if (content.eventType === 'USER_REGISTERED') {
-                await this.walletService.createWallet(content.userId);
-                this.logger.log(`Wallet created for user ${content.userId}`);
-                channel.ack(msg);
-            } else {
-                this.logger.warn('Unkown event type:', content.eventType);
-                channel.nack(msg, false, false);
-            }
-        } catch(error) {
-            this.logger.error('Error proccesing messsage:', error);
-            channel.nack(msg, false, true);
+            await channel.addSetup(async (channel) => {
+                const queue = await channel.assertQueue('wallet_service_queue', { 
+                    durable: true, 
+                    arguments: {
+                        'x-dead-letter-exchange': 'dead_letters',
+                        'x-message-ttl': 86400000
+                    }
+                })
+
+                await Promise.all([
+                    channel.bindQueue(queue.queue, 'user_events', 'user.registered'),
+                    channel.prefetch(1),
+                ]);
+
+                await channel.consume(queue.queue, async (msg) => {
+                    if (msg) {
+                        try {        
+                            const content = JSON.parse(msg.content.toString());
+                            this.logger.debug(`User Registered event received and handling wallet creation`);
+
+                            if (content.eventType === 'USER_REGISTERED') {
+                                await this.walletService.createWallet(content.userId);
+                                this.logger.debug(`Wallet created for user ${content.userId}`);
+                                
+                                channel.ack(msg);
+                            } else {
+                                this.logger.warn('Unkown event type:', content.eventType);
+                                channel.nack(msg, false, false);
+                            }
+                        } catch (error) {
+                            this.logger.error('Error processing message:', error);
+                            channel.nack(msg, false, false);
+                        }
+                    }
+                });
+
+                channel.on('error', (err) => {
+                    this.logger.error('Channel error:', err);
+                });
+
+                channel.on('close', () => {
+                this.logger.log('channel closed');
+                })
+            });
+        } catch (error) {
+            this.logger.error("Failed to setup wallet consumer:", error)
         }
     }
 }

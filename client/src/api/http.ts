@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { NavigateFunction } from "react-router-dom";
 
 const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000', 
@@ -13,23 +14,24 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+export const setupInterceptors = (navigate: NavigateFunction ) => {
+  apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      if (error.response?.status == 401) {
+        localStorage.removeItem('accessToken');
+        navigate('/login');
+        return Promise.reject(error);
+      }
 
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      window.location.href = '/login';
-      return Promise.reject(error);
-    }
-
-    const formattedError = new Error(
-      error.response?.data?.message || error.message || 'An unknown error occurred'
-    );
-    formattedError.name = `HTTP_${error.response?.status || 500}`;
+      const formattedError = new Error(
+        error.response?.data?.message || error.message || "An unknown error occurred"
+      );
+      formattedError.name = `HTTP_${error.response?.status || 500}`;
     
-    throw formattedError;
-  }
-)
+      throw formattedError;
+    }
+  )
+}
 
 export default apiClient;

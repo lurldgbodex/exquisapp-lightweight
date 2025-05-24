@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Box, Button, Container, TextField, Typography, Alert } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { authApi } from '../../features/auth/api';
+import type { AxiosError } from 'axios';
 
 const registerSchema = z.object({
   first_name: z.string().min(2, 'first_name must be at least 2 characters'),
@@ -35,10 +36,14 @@ export default function RegisterPage() {
       setIsLoading(true);
       setError('');
       const response = await authApi.register(data);
-      login(response.accessToken);
-      navigate('/dashboard');
+
+      setTimeout(() => {
+        login(response.accessToken);
+        navigate('/dashboard');
+      }, 2000)
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      const error = err as AxiosError;
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }

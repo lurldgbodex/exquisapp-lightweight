@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -11,6 +11,8 @@ import { RabbitMQService } from 'libs/shared-lib/src';
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
     constructor(
         private userService: UsersService,
         private jwtService: JwtService,
@@ -19,19 +21,19 @@ export class AuthService {
 
     async login(loginDto: LoginRequest): Promise<AuthResponse> {
         const user = await this.validateUser(loginDto);
-        console.log('UserID:', user.id);
+        this.logger.debug('Login User:', user.id);
 
         return await this.generateToken(user);
     }
 
     async register(registerDto: CreateRequest): Promise<AuthResponse> {
-        console.log("Creating User");
         const user = await this.userService.create(registerDto);
 
         this.publishUserRegisteredEvent(user).catch(err => {
-            console.error('Failed to publish user registered event:', err);
+            this.logger.error('Failed to publish user registered event:', err);
         });
-                
+        
+        this.logger.debug(`Registered User: ${user.id}`)
         return await this.generateToken(user);
     } 
 
@@ -58,7 +60,7 @@ export class AuthService {
     }
 
     private async publishUserRegisteredEvent(user: User) {
-        console.log('Publishing user created event');
+        this.logger.debug('Publishing user created event');
 
         await this.rabbitMQService.publish('user_events', 'user.registered', {
             eventType: 'USER_REGISTERED',
@@ -68,6 +70,6 @@ export class AuthService {
             timeStamp: user.createdAt,
         });
 
-        console.log('User Registered Event Published');
+        this.logger.debug('User Registered Event Published');
     }
 }

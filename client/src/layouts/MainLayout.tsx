@@ -3,6 +3,7 @@ import { Box, CssBaseline, Toolbar } from '@mui/material';
 import AppBar from './AppBar';
 import AppDrawer from './Drawer';
 import { useState } from 'react';
+import InterceptorProvider from '../components/InterceptorProvider';
 
 export default function MainLayout() {
   const [mobileOpen, setMoblieOpen] = useState(false);
@@ -14,6 +15,7 @@ export default function MainLayout() {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
+      <InterceptorProvider />
 
       <AppBar onDrawerToggle={handleDrawerToggle} />
 

@@ -9,10 +9,14 @@ import { HttpModule } from '@nestjs/axios';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { BillingController } from './billing-service.controller';
+import { resolve} from 'path';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: resolve(process.cwd(), 'apps/billing-service/.env')
+    }),
     TypeOrmModule.forFeature([BillingRecord]),
     RabbitMQModule,
     BillingDatabaseModule,

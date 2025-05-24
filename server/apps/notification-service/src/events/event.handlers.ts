@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { RabbitMQService, UserServiceClient } from "libs/shared-lib/src";
 import { EmailService } from "../emails/email.service";
 import { UserCreatedDto } from "./user-created.dto";
@@ -7,6 +7,8 @@ import { WalletDto } from "./wallet.dto";
 
 @Injectable()
 export class EventHandlers {
+    private readonly logger = new Logger(EventHandlers.name);
+
     constructor(
         private readonly rabbitMQService: RabbitMQService,
         private readonly emailService: EmailService,
@@ -15,6 +17,7 @@ export class EventHandlers {
 
     async initializeEventListeners() {
         try {
+            this.logger.debug('Creating Channel for Notification')
             const channel = await this.rabbitMQService.createChannel();
 
             await channel.addSetup(async (channel) => {
@@ -33,12 +36,15 @@ export class EventHandlers {
                     channel.bindQueue(queue.queue, 'wallet_events', 'wallet.debited'),
                 ]);
 
+                this.logger.debug('Channel created and setup for Notification')
+                this.logger.debug('Consuming Channel Event');
+
                 await channel.consume(queue.queue, async (msg) => {
                     if (msg !== null) {
                         try {
                             const content = JSON.parse(msg.content.toString());
                             const routingKey = msg.fields.routingKey;
-        
+         
                             await this.handleEvent(routingKey, content);
                             channel.ack(msg);
                         } catch (error) {
@@ -49,34 +55,37 @@ export class EventHandlers {
                 });
 
                 channel.on('error', (err) => {
-                    console.error('Channel error:', err);
+                    this.logger.error('Channel error:', err);
                 });
 
                 channel.on('close', () => {
-                    console.log('channel closed');
+                    this.logger.log('channel closed');
                 })
             });
         } catch (error) {
-            console.error("Failed to initialize event listeners:", error)
+            this.logger.error("Failed to initialize event listeners:", error)
         }
     }
 
     private async handleEvent(routingKey: string, content: any) {
-      console.log("Routing Key:", routingKey)
-      console.log('Event Message:', content)
+        this.logger.debug('Handling Notification events')
 
         switch (routingKey) {
             case 'user.registered':
                 await this.handleUserCreated(content);
+                this.logger.debug('User registered event handled')
                 break;
             case 'payment.completed':
                 await this.handlePaymentCompleted(content);
+                this.logger.debug('payment event handled')
                 break;
             case 'wallet.credited':
                 await this.handleWalletCredited(content);
+                this.logger.debug('Wallet Credited event handled')
                 break;
             case 'wallet.debited':
                 await this.handleWalletDebited(content);
+                this.logger.debug('Wallet debited event handled')
             default:
                 console.warn('Unhandled event type:', routingKey)
         }

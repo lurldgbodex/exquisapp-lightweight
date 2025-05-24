@@ -1,51 +1,66 @@
-import { Injectable, OnModuleInit } from "@nestjs/common";
-import * as amqp from 'amqp-connection-manager';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { BillingService } from "../billing-service.service";
+import { RabbitMQService } from "libs/shared-lib/src";
 
 @Injectable()
 export class BillingConsumer implements OnModuleInit {
-    private connection: amqp.AmqpConnectionManager;
-    private channelWrapper: amqp.ChannelWrapper;
-
-    constructor(private readonly billingSerice: BillingService) {}
+    private readonly logger = new Logger(BillingConsumer.name);
+    
+    constructor(
+        private readonly billingSerice: BillingService,
+        private readonly rabbitMQService: RabbitMQService,
+    ) {}
 
     async onModuleInit() {
         await this.setupConsumer();
     }
 
-    private async setupConsumer() {
-        this.connection = amqp.connect(['amqp://localhost:5672'], {
-            reconnectTimeInSeconds: 5
-        });
-        this.channelWrapper = this.connection.createChannel({
-            json: true,
-            setup: (channel) => {
-                return Promise.all([
-                    channel.assertExchange('payment_exchange', 'topic', { durable: true }),
-                    channel.assertQueue('billing_service_queue', { durable: true }),
-                    channel.bindQueue('billing_service_queue', 'payment_exchange', 'payment.completed'),
+    async setupConsumer() {
+        try {
+            this.logger.debug('Creating channel')
+            const channel = await this.rabbitMQService.createChannel();
+            this.logger.debug('Channel created')
+
+            await channel.addSetup(async (channel) => {
+                const queue = await channel.assertQueue('billing_service_queue', { 
+                    durable: true, 
+                    arguments: {
+                        'x-dead-letter-exchange': 'dead_letters',
+                        'x-message-ttl': 86400000
+                    }
+                })
+
+                await Promise.all([
+                    channel.bindQueue(queue.queue, 'payment_exchange', 'payment.completed'),
                     channel.prefetch(1),
                 ]);
-            }
-        });
 
-        this.channelWrapper.consume('billing_service_queue', async (message) => {
-            console.log('Received message with routing key:', message.fields.routingKey);
-            console.log('Exchange:', message.fields.exchange);
+                await channel.consume(queue.queue, async (message) => {
+                    if (message) {
+                        try {
+                            const content = JSON.parse(message.content.toString());
 
-            if (message) {
-                try {
-                    const content = JSON.parse(message.content.toString());
+                            this.logger.debug(`Message Received and Calling Billing Service`);
+                            await this.billingSerice.processPaymentEvent(content);
 
-                    console.log(`Received message: ${JSON.stringify(content)}`);
-                    console.log('Billing Service called')
-                    await this.billingSerice.processPaymentEvent(content);
-                    this.channelWrapper.ack(message);
-                } catch (error) {
-                    console.error('Error processing message:', error);
-                    this.channelWrapper.nack(message, false, false);
-                }
-            }
-        });
+                            channel.ack(message);
+                        } catch (error) {
+                            this.logger.error('Error processing message:', error);
+                            channel.nack(message, false, false);
+                        }
+                    }
+                });
+
+                channel.on('error', (err) => {
+                    console.error('Channel error:', err);
+                });
+
+                channel.on('close', () => {
+                    console.log('channel closed');
+                })
+            });
+        } catch (error) {
+            console.error("Failed to setup billing consumer:", error)
+        }
     }
 }

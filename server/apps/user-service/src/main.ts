@@ -1,7 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { UserServiceModule } from './user-service.module';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';                   
+import { resolve } from 'path';
+import * as dotenv    from 'dotenv';
+
+const envPath = resolve(process.cwd(), 'apps/user-service/.env');
+dotenv.config({ path: envPath });
 
 async function bootstrap() {
   const app = await NestFactory.create(UserServiceModule);

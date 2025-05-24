@@ -6,14 +6,23 @@ import { HttpModule } from '@nestjs/axios';
 import { PaymentDatabaseModule } from './database/database.module';
 import { PaymentPublisher } from './events/payment.publisher';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Payment } from './entities/payment.entities';
+import { Payment } from './entities/payment.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
+import { resolve } from 'path';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Payment]),
-    HttpModule, RabbitMQModule, PaymentDatabaseModule,JwtModule, ConfigModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: resolve(process.cwd(), 'apps/payment-service/.env')
+      
+    }),
+    HttpModule, 
+    RabbitMQModule, 
+    PaymentDatabaseModule,
+    JwtModule, ConfigModule,
   ],
   providers: [
     PaymentService, 

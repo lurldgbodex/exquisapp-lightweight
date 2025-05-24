@@ -21,7 +21,7 @@ export class ServiceJwtGuard implements CanActivate {
 
         try {
             const payload = this.jwtService.verify(token, {
-                secret: this.config.get('SERVICE_JWT_SERVICE') || 'service-jwt-secret',
+                secret: this.config.get('SERVICE_JWT_SECRET') || 'service-jwt-secret',
             });
             req.service = payload;
             return true;

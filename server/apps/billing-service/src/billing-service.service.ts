@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RabbitMQService, WalletServiceClient } from 'libs/shared-lib/src';
 import { BillingRecord } from './entities/billing.entity';
@@ -7,6 +7,8 @@ import { BillingEventDto } from './events/billing.event';
 
 @Injectable()
 export class BillingService {
+  private readonly logger = new Logger(BillingService.name);
+
   constructor(
     @InjectRepository(BillingRecord)
     private billingRepository: Repository<BillingRecord>,
@@ -47,18 +49,14 @@ export class BillingService {
   }
 
   async processPaymentEvent(event: BillingEventDto) {
-    console.log("Process Payment Event")
-    console.log("Event:", event);
-    console.log('Event Type:', event.type);
+    this.logger.debug("Processing Payment Event")
 
     if (event.type !== 'payment.completed') return;
 
     const { data } = event;
-    console.log('Event Data:', data);
-
     const { paymentId, paidBy, paidTo, reference, paymentType } = data;
 
-    console.log('Creating Billing Record');
+   this.logger.debug('Creating Billing Record');
 
     const amount = parseFloat(data.amount);
     const billingRecord = this.billingRepository.create({
@@ -72,17 +70,19 @@ export class BillingService {
 
     await this.billingRepository.save(billingRecord);
 
-    console.log('Created Billing Record:', billingRecord);
+    this.logger.log('Created Billing Record:', billingRecord);
 
     if (paymentType === 'transfer') {
-      console.log('Handling transfer case');
+      this.logger.debug('Handling transfer case');
+
       if (!paidTo) {
-        console.error('Recipient is null');
+        this.logger.error('Recipient is null');
         return;
       }
+
       await this.processTransfer(paidBy, paidTo, amount, reference);
     } else {
-      console.log("Handling deposit case");
+      this.logger.debug("Handling deposit case");
       await this.processFunding(paidBy, amount, reference);
     }
   }
@@ -100,7 +100,7 @@ export class BillingService {
     });
 
     this.publishWalletDebitedEvent(transactionInfo).catch(err => {
-      console.error('Failed to publish wallet debited event:', err);
+      this.logger.error('Failed to publish wallet debited event:', err);
     })
 
     const creditReference = `CREDIT-${reference}`
@@ -113,12 +113,13 @@ export class BillingService {
     await this.billingRepository.update( { reference }, { status: 'completed'}, );
 
     this.publishWalletCreditedEvent(to, amount, creditReference).catch(err => {
-      console.error('Failed to publish credit wallet event:', err);
+      this.logger.error('Failed to publish credit wallet event:', err);
     })
   }
 
   private async processFunding(userId: string, amount: number, reference: string) {
     const creditReference = `DEPOSIT-${reference}`
+
     await this.walletService.creditWallet({
       userId, 
       amount, 
@@ -134,7 +135,7 @@ export class BillingService {
   }
 
    private async publishWalletCreditedEvent(userId: string, amount: number, reference: string) {
-        console.log('Publishing wallet credited event');
+        this.logger.debug('Publishing wallet credited event');
 
         await this.rabbitMQService.publish('wallet_events', 'wallet.credited', {
             eventType: 'WALLET_CREDITED',
@@ -143,11 +144,11 @@ export class BillingService {
             reference,
         });
 
-        console.log('User Registered Event Published');
+        this.logger.debug('User Registered Event Published');
     }
 
      private async publishWalletDebitedEvent(transactionInfo: { userId: string, amount: number, reference: string }) {
-          console.log('Publishing wallet Debited event');
+          this.logger.debug('Publishing wallet Debited event');
   
           await this.rabbitMQService.publish('wallet_events', 'wallet.debited', {
               eventType: 'WALLET_DEBITED',
@@ -156,6 +157,6 @@ export class BillingService {
               reference: transactionInfo.reference,
           });
   
-          console.log('User Registered Event Published');
+          this.logger.debug('User Registered Event Published');
       }
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { Repository } from 'typeorm';
@@ -7,13 +7,16 @@ import { Decimal } from 'decimal.js';
 
 @Injectable()
 export class WalletService {
+  private readonly logger = new Logger(WalletService.name);
+
   constructor(
     @InjectRepository(Wallet)
     private readonly walletRepository: Repository<Wallet>,
   ) {}
 
   async createWallet(userId: string): Promise<Wallet> {
-    console.log('Event received to create wallet')
+    this.logger.debug('Event received to create wallet')
+
     const wallet = await this.walletRepository.create({ userId });
     return await this.walletRepository.save(wallet);
   }
@@ -29,13 +32,12 @@ export class WalletService {
 
   async getWalletBalance(userId: string): Promise<{balance: number}> {
     const wallet = await this.getWallet(userId);
-    return {
-      balance: wallet.balance
-    }
+    return { balance: wallet.balance }
   }
 
   async debitWallet(data: WalletDto) {
     const wallet = await this.getWallet(data.userId);
+    
     if (wallet.balance < data.amount) {
       throw new BadRequestException('Insufficient funds for debit')
     }

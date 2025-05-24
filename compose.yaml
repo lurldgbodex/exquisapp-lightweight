@@ -83,7 +83,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - JWT_SECRET=${JWT-SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - USER_SERVICE_URL=${USER_SERVICE_URL}
+      - WALLET_SERVICE_URL=${WALLET_SERVICE_URL}
+      - PAYMENT_SERVICE_URL=${PAYMENT_SERVICE_URL}
+      - BILLING_SERVICE_URL=${BILLING_SERVICE_URL}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -106,7 +110,7 @@ services:
       - DB_USERNAME=${USER_DB_USER}
       - DB_PASSWORD=${USER_DB_PASSWORD}
       - DB_NAME=${USER_DB_NAME}
-      - JWT_SECRET=${JWT-SECRET}
+      - JWT_SECRET=${JWT_SECRET}
       - SERVICE_JWT_SECRET=${SERVICE-JWT}
     depends_on:
       user-db:
@@ -126,7 +130,6 @@ services:
       - DB_USERNAME=${WALLET_DB_USER}
       - DB_PASSWORD=${WALLET_DB_PASSWORD}
       - DB_NAME=${WALLET_DB_NAME}
-      - RABBITMQ_URL='amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672'
       - SERVICE_JWT_SECRET=${SERVICE-JWT}
     depends_on:
       wallet-db:
@@ -165,7 +168,6 @@ services:
       - DB_USERNAME=${BILLING_DB_USER}
       - DB_PASSWORD=${BILLING_DB_PASSWORD}
       - DB_NAME=${BILLING_DB_NAME}
-      - RABBITMQ_URL='amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672'
       - SERVICE_JWT_SECRET=${SERVICE-JWT}
     depends_on:
       billing-db:

@@ -18,7 +18,6 @@ export const authApi = {
     login: async (data: LoginData) => {
         try {
             const response = await apiClient.post('/auths/login', data)
-            console.log(response);
             return response.data;
         } catch (error) {
             const err = error as AxiosError<{ message: string }>;
